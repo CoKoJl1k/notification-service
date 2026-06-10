@@ -28,27 +28,34 @@ class NotificationService
 
         DB::transaction(function () use ($channel, $priority, $message, $recipientIds, $idempotencyKey, &$notifications) {
             foreach ($recipientIds as $recipientId) {
-                $key = $this->deduplicationService->generateKey(
-                    $channel->value,
-                    $recipientId,
-                    $message,
-                    $idempotencyKey,
-                );
+                if ($idempotencyKey) {
+                    $key = $this->deduplicationService->generateKey(
+                        $channel->value,
+                        $recipientId,
+                        $message,
+                        $idempotencyKey,
+                    );
 
-                if ($idempotencyKey && !$this->deduplicationService->acquireLock($key)) {
-                    continue;
+                    if (!$this->deduplicationService->acquireLock($key)) {
+                        continue;
+                    }
                 }
 
                 try {
-                    $notification = Notification::create([
+                    $data = [
                         'recipient_id' => $recipientId,
                         'channel' => $channel,
                         'priority' => $priority,
                         'message' => $message,
                         'status' => NotificationStatus::Queued,
-                        'idempotency_key' => $key,
                         'retry_count' => 0,
-                    ]);
+                    ];
+
+                    if ($idempotencyKey) {
+                        $data['idempotency_key'] = $key;
+                    }
+
+                    $notification = Notification::create($data);
                 } catch (QueryException $e) {
                     if ($idempotencyKey && $e->getCode() === '23505') {
                         continue;
