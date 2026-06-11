@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Contracts\NotificationProviderInterface;
 use App\Enums\NotificationChannel;
 use App\Services\NotificationDispatcher;
 use App\Services\NotificationService;

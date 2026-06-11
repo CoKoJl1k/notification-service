@@ -4,20 +4,20 @@ namespace App\Providers;
 
 use App\Contracts\NotificationProviderInterface;
 use App\Enums\NotificationChannel;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
 class MockSmsProvider implements NotificationProviderInterface
 {
-    public function send(string $recipient, string $message): bool
+    public function send(User $recipient, string $message): bool
     {
-        Log::info("MockSmsProvider: sending SMS to {$recipient}", [
-            'message' => $message,
-        ]);
-
-        if (str_starts_with($recipient, '000')) {
+        try {
+            Log::info("MockSmsProvider: sending SMS to {$recipient->phone}", ['message' => $message,]);
+        } catch (Exception $e) {
+            Log::info($e->getMessage() . ' in ' . $e->getFile() . ' ' . $e->getLine());
             return false;
         }
-
         return true;
     }
 

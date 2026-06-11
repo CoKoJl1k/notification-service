@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\NotificationStatus;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -14,10 +15,13 @@ class NotificationSendTest extends TestCase
 
     public function test_it_sends_sms_notifications(): void
     {
+        $user1 = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+        $user2 = User::create(['name' => 'Bob', 'phone' => '+380501234568']);
+
         $payload = [
             'channel' => 'sms',
             'message' => 'Your verification code is 123456',
-            'recipient_ids' => ['+380501234567', '+380501234568'],
+            'recipient_ids' => [$user1->id, $user2->id],
             'priority' => 'transactional',
         ];
 
@@ -37,10 +41,13 @@ class NotificationSendTest extends TestCase
 
     public function test_it_sends_email_notifications(): void
     {
+        $user = User::create(['name' => 'User', 'phone' => 'user@example.com']);
+        $admin = User::create(['name' => 'Admin', 'phone' => 'admin@example.com']);
+
         $payload = [
             'channel' => 'email',
             'message' => 'Welcome to our service!',
-            'recipient_ids' => ['user@example.com', 'admin@example.com'],
+            'recipient_ids' => [$user->id, $admin->id],
             'priority' => 'marketing',
         ];
 
@@ -53,10 +60,12 @@ class NotificationSendTest extends TestCase
 
     public function test_it_processes_notification_end_to_end(): void
     {
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
         $payload = [
             'channel' => 'sms',
             'message' => 'Test message',
-            'recipient_ids' => ['+380501234567'],
+            'recipient_ids' => [$user->id],
             'priority' => 'marketing',
         ];
 
@@ -65,6 +74,7 @@ class NotificationSendTest extends TestCase
         $response->assertStatus(201);
 
         $notification = Notification::first();
+        $this->assertEquals((string) $user->id, $notification->recipient_id);
         $this->assertEquals(NotificationStatus::Delivered, $notification->status);
         $this->assertNotNull($notification->sent_at);
         $this->assertNotNull($notification->delivered_at);
@@ -72,8 +82,10 @@ class NotificationSendTest extends TestCase
 
     public function test_it_returns_subscriber_history(): void
     {
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
         Notification::create([
-            'recipient_id' => 'user123',
+            'recipient_id' => $user->id,
             'channel' => 'sms',
             'priority' => 'transactional',
             'message' => 'Test',
@@ -83,18 +95,19 @@ class NotificationSendTest extends TestCase
         ]);
 
         Notification::create([
-            'recipient_id' => 'user123',
+            'recipient_id' => $user->id,
             'channel' => 'email',
             'priority' => 'marketing',
             'message' => 'Promo',
             'status' => NotificationStatus::Queued,
         ]);
 
-        $response = $this->getJson('/api/notifications/subscriber/user123');
+        $response = $this->getJson("/api/notifications/subscriber/{$user->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'recipient_id',
+                'phone',
                 'notifications' => [
                     '*' => [
                         'id', 'recipient_id', 'channel', 'priority',
@@ -104,6 +117,7 @@ class NotificationSendTest extends TestCase
             ]);
 
         $this->assertCount(2, $response->json('notifications'));
+        $this->assertEquals($user->id, $response->json('recipient_id'));
     }
 
     public function test_it_returns_single_notification(): void
@@ -131,10 +145,12 @@ class NotificationSendTest extends TestCase
 
     public function test_it_validates_channel_field(): void
     {
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
         $payload = [
             'channel' => 'invalid',
             'message' => 'Test',
-            'recipient_ids' => ['+380501234567'],
+            'recipient_ids' => [$user->id],
             'priority' => 'marketing',
         ];
 
@@ -144,11 +160,26 @@ class NotificationSendTest extends TestCase
 
     public function test_it_validates_priority_field(): void
     {
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
         $payload = [
             'channel' => 'sms',
             'message' => 'Test',
-            'recipient_ids' => ['+380501234567'],
+            'recipient_ids' => [$user->id],
             'priority' => 'invalid',
+        ];
+
+        $response = $this->postJson('/api/notifications/send', $payload);
+        $response->assertStatus(422);
+    }
+
+    public function test_it_validates_recipient_ids_exist(): void
+    {
+        $payload = [
+            'channel' => 'sms',
+            'message' => 'Test',
+            'recipient_ids' => [999],
+            'priority' => 'marketing',
         ];
 
         $response = $this->postJson('/api/notifications/send', $payload);

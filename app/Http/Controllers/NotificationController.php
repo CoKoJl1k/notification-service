@@ -8,6 +8,7 @@ use App\Http\Requests\SendNotificationRequest;
 use App\Http\Resources\NotificationResource;
 use App\Jobs\ProcessNotification;
 use App\Models\Notification;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 
@@ -19,17 +20,17 @@ class NotificationController extends Controller
 
     public function send(SendNotificationRequest $request): JsonResponse
     {
-        $channel = NotificationChannel::from($request->input('channel'));
+        $channel  = NotificationChannel::from($request->input('channel'));
         $priority = NotificationPriority::from($request->input('priority'));
-        $recipientIds = $request->input('recipient_ids');
-        $message = $request->input('message');
+        $userIds  = $request->input('recipient_ids');
+        $message  = $request->input('message');
         $idempotencyKey = $request->input('idempotency_key');
 
-        $notifications = $this->notificationService->dispatch(
+        $notifications = $this->notificationService->saveAndSetKey(
             $channel,
             $priority,
             $message,
-            $recipientIds,
+            $userIds,
             $idempotencyKey,
         );
 
@@ -49,12 +50,14 @@ class NotificationController extends Controller
         ], 201);
     }
 
-    public function subscriberHistory(string $recipientId): JsonResponse
+    public function subscriberHistory(string $userId): JsonResponse
     {
-        $notifications = $this->notificationService->getSubscriberHistory($recipientId);
+        $user = User::findOrFail($userId);
+        $notifications = $this->notificationService->getSubscriberHistory($user->id);
 
         return response()->json([
-            'recipient_id' => $recipientId,
+            'recipient_id'  => (int) $userId,
+            'phone'         => $user->phone,
             'notifications' => NotificationResource::collection($notifications),
         ]);
     }

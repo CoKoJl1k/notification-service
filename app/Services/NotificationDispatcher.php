@@ -6,6 +6,7 @@ use App\Contracts\NotificationProviderInterface;
 use App\Enums\NotificationStatus;
 use App\Exceptions\NotificationException;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class NotificationDispatcher
@@ -37,7 +38,8 @@ class NotificationDispatcher
         }
 
         try {
-            $success = $provider->send($notification->recipient_id, $notification->message);
+            $user = User::findOrFail($notification->recipient_id);
+            $success = $provider->send($user, $notification->message);
 
             if ($success) {
                 $this->notificationService->markSent($notification);

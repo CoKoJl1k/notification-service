@@ -16,13 +16,13 @@
 ```
 POST /api/notifications/send  ──►  NotificationController
        │
-       ├──►  NotificationService (создание записей, дедубликация)
+       ├──► NotificationService (создание записей с recipient_id = user_id)
        │
-       └──►  Queue (RabbitMQ / Database)
+       └──► Queue (RabbitMQ / Database)
                 │
-                └──►  Worker (consumes queue)
+                └──► Worker (consumes queue)
                         │
-                        └──►  NotificationDispatcher
+                        └──► NotificationDispatcher (загрузка User, получение phone/email)
                                 │
                                 ├──► MockSmsProvider
                                 └──► MockEmailProvider
@@ -34,6 +34,17 @@ POST /api/notifications/send  ──►  NotificationController
 - **Marketing** (низкий приоритет) — рекламные рассылки
 
 Transactional уведомления обрабатываются вне очереди перед Marketing.
+
+## База данных пользователей
+
+Номера телефонов хранятся в таблице `users`. В `notifications.recipient_id` сохраняется ID пользователя. При отправке уведомления номер телефона/email подтягивается из таблицы `users` в момент вызова провайдера.
+
+```bash
+# Залить тестовых пользователей (выполняется автоматически при --seed)
+php artisan db:seed
+```
+
+Таблица `users` содержит поля: `id` (auto increment), `name`, `phone`, `created_at`, `updated_at`.
 
 ## Быстрый старт
 
@@ -64,7 +75,7 @@ POST /api/notifications/send
 {
     "channel": "sms",
     "message": "Your verification code is 123456",
-    "recipient_ids": ["+380501234567", "+380501234568"],
+    "recipient_ids": [1, 2],
     "priority": "transactional"
 }
 ```
@@ -84,24 +95,29 @@ POST /api/notifications/send
 |------|-----|-------------|----------|
 | `channel` | string | да | `sms` или `email` |
 | `message` | string | да | Текст сообщения (1-5000 символов) |
-| `recipient_ids` | array<string> | да | Массив получателей (1-1000) |
+| `recipient_ids` | array\<int\> | да | ID пользователей из таблицы `users` (1-1000) |
 | `priority` | string | да | `transactional` или `marketing` |
 | `idempotency_key` | string | нет | Ключ идемпотентности для дедубликации |
 
-### 2. История уведомлений подписчика
+Номера телефонов/email подтягиваются из таблицы `users` в момент отправки через провайдера.
+
+### 2. История уведомлений пользователя
 
 ```
-GET /api/notifications/subscriber/{recipientId}
+GET /api/notifications/subscriber/{userId}
 ```
+
+`userId` — ID из таблицы `users`.
 
 **Response (200):**
 ```json
 {
-    "recipient_id": "+380501234567",
+    "recipient_id": 1,
+    "phone": "+380501234567",
     "notifications": [
         {
             "id": "uuid",
-            "recipient_id": "+380501234567",
+            "recipient_id": "1",
             "channel": "sms",
             "priority": "transactional",
             "status": "delivered",
@@ -130,34 +146,34 @@ GET /api/notifications/{id}
 
 ## Примеры использования
 
-### Отправка transactional SMS
+### Отправка transactional SMS (пользователь с ID=1)
 ```bash
 curl -X POST http://localhost:8000/api/notifications/send \
   -H "Content-Type: application/json" \
   -d '{
     "channel": "sms",
     "message": "Your verification code: 1234",
-    "recipient_ids": ["+380501234567"],
+    "recipient_ids": [1],
     "priority": "transactional"
 }'
 ```
 
-### Отправка email с дедубликацией
+### Отправка email с дедубликацией (пользователь с ID=2)
 ```bash
 curl -X POST http://localhost:8000/api/notifications/send \
   -H "Content-Type: application/json" \
   -d '{
     "channel": "email",
     "message": "Welcome!",
-    "recipient_ids": ["user@example.com"],
+    "recipient_ids": [2],
     "priority": "marketing",
-    "idempotency_key": "welcome-email-user123"
+    "idempotency_key": "welcome-email-user2"
 }'
 ```
 
-### Проверка статуса
+### Проверка статуса по ID пользователя
 ```bash
-curl http://localhost:8000/api/notifications/subscriber/+380501234567
+curl http://localhost:8000/api/notifications/subscriber/1
 ```
 
 ## Запуск тестов

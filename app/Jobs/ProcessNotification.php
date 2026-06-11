@@ -17,21 +17,17 @@ class ProcessNotification implements ShouldQueue
 
     public ?string $queue = null;
 
-    public function __construct(
-        private readonly string $notificationId,
-        ?string $queue = null,
-    ) {
+    public function __construct(private readonly string $notificationId, ?string $queue = null)
+    {
         $this->queue = $queue;
     }
 
     public function handle(NotificationDispatcher $dispatcher): void
     {
         $notification = Notification::find($this->notificationId);
-
         if (!$notification || $notification->isFinalState()) {
             return;
         }
-
         $dispatcher->dispatch($notification);
     }
 

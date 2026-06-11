@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationStatus;
-use App\Exceptions\NotificationException;
 use App\Models\Notification;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
@@ -17,7 +16,7 @@ class NotificationService
         private readonly DeduplicationService $deduplicationService,
     ) {}
 
-    public function dispatch(
+    public function saveAndSetKey(
         NotificationChannel $channel,
         NotificationPriority $priority,
         string $message,

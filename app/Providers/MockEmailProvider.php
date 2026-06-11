@@ -4,17 +4,19 @@ namespace App\Providers;
 
 use App\Contracts\NotificationProviderInterface;
 use App\Enums\NotificationChannel;
+use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\Log;
+
 
 class MockEmailProvider implements NotificationProviderInterface
 {
-    public function send(string $recipient, string $message): bool
+    public function send(User $recipient, string $message): bool
     {
-        Log::info("MockEmailProvider: sending email to {$recipient}", [
-            'message' => $message,
-        ]);
-
-        if (str_contains($recipient, 'invalid')) {
+        try {
+            Log::info("MockEmailProvider: sending email to {$recipient->email}", ['message' => $message]);
+        } catch (Exception $e) {
+            Log::info($e->getMessage() . ' in ' . $e->getFile() . ' ' . $e->getLine());
             return false;
         }
 
