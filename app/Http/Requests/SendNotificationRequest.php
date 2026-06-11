@@ -14,7 +14,6 @@ class SendNotificationRequest extends FormRequest
             'recipient_ids' => ['required', 'array', 'min:1', 'max:1000'],
             'recipient_ids.*' => ['required', 'integer', 'exists:users,id'],
             'priority' => ['required', 'string', 'in:transactional,marketing'],
-            'idempotency_key' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

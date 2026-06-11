@@ -10,13 +10,12 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('recipient_id');
+            $table->unsignedBigInteger('recipient_id');
             $table->string('channel');
             $table->string('priority');
             $table->text('message');
             $table->string('status');
             $table->string('error_message')->nullable();
-            $table->string('idempotency_key')->nullable()->unique();
             $table->unsignedTinyInteger('retry_count')->default(0);
             $table->timestamp('sent_at')->nullable();
             $table->timestamp('delivered_at')->nullable();

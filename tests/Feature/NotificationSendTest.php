@@ -74,7 +74,7 @@ class NotificationSendTest extends TestCase
         $response->assertStatus(201);
 
         $notification = Notification::first();
-        $this->assertEquals((string) $user->id, $notification->recipient_id);
+        $this->assertEquals($user->id, $notification->recipient_id);
         $this->assertEquals(NotificationStatus::Delivered, $notification->status);
         $this->assertNotNull($notification->sent_at);
         $this->assertNotNull($notification->delivered_at);

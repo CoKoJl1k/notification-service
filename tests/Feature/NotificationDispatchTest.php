@@ -6,7 +6,7 @@ use App\Contracts\NotificationProviderInterface;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationStatus;
-use App\Models\Notification;
+use App\Models\User;
 use App\Services\NotificationDispatcher;
 use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,7 +59,7 @@ class NotificationDispatchTest extends TestCase
     public function test_it_marks_discarded_after_max_retries(): void
     {
         $provider = new class implements NotificationProviderInterface {
-            public function send(string $recipient, string $message): bool
+            public function send(User $recipient, string $message): bool
             {
                 return false;
             }
@@ -94,7 +94,7 @@ class NotificationDispatchTest extends TestCase
     public function test_it_discards_on_provider_failure(): void
     {
         $provider = new class implements NotificationProviderInterface {
-            public function send(string $recipient, string $message): bool
+            public function send(User $recipient, string $message): bool
             {
                 return false;
             }

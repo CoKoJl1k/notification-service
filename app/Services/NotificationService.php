@@ -16,28 +16,23 @@ class NotificationService
         private readonly DeduplicationService $deduplicationService,
     ) {}
 
-    public function saveAndSetKey(
+    public function saveNotificationAndSetKey(
         NotificationChannel $channel,
         NotificationPriority $priority,
         string $message,
         array $recipientIds,
-        ?string $idempotencyKey = null,
     ): Collection {
         $notifications = collect();
 
-        DB::transaction(function () use ($channel, $priority, $message, $recipientIds, $idempotencyKey, &$notifications) {
+        DB::transaction(function () use ($channel, $priority, $message, $recipientIds, &$notifications) {
             foreach ($recipientIds as $recipientId) {
-                if ($idempotencyKey) {
-                    $key = $this->deduplicationService->generateKey(
-                        $channel->value,
-                        $recipientId,
-                        $message,
-                        $idempotencyKey,
-                    );
-
-                    if (!$this->deduplicationService->acquireLock($key)) {
-                        continue;
-                    }
+                $key = $this->deduplicationService->generateKey(
+                    $channel->value,
+                    (string) $recipientId,
+                    $message,
+                );
+                if (!$this->deduplicationService->acquireLock($key)) {
+                    continue;
                 }
 
                 try {
@@ -50,15 +45,8 @@ class NotificationService
                         'retry_count' => 0,
                     ];
 
-                    if ($idempotencyKey) {
-                        $data['idempotency_key'] = $key;
-                    }
-
                     $notification = Notification::create($data);
                 } catch (QueryException $e) {
-                    if ($idempotencyKey && $e->getCode() === '23505') {
-                        continue;
-                    }
                     throw $e;
                 }
 
@@ -98,7 +86,7 @@ class NotificationService
         $notification->increment('retry_count');
     }
 
-    public function getSubscriberHistory(string $recipientId): Collection
+    public function getSubscriberHistory(int $recipientId): Collection
     {
         return Notification::where('recipient_id', $recipientId)
             ->orderByDesc('created_at')

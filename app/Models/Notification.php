@@ -23,7 +23,6 @@ class Notification extends Model
         'error_message',
         'sent_at',
         'delivered_at',
-        'idempotency_key',
         'retry_count',
     ];
 
@@ -36,13 +35,5 @@ class Notification extends Model
             'sent_at' => 'datetime',
             'delivered_at' => 'datetime',
         ];
-    }
-
-    public function isFinalState(): bool
-    {
-        return in_array($this->status, [
-            NotificationStatus::Delivered,
-            NotificationStatus::Discarded,
-        ], true);
     }
 }

@@ -97,9 +97,8 @@ POST /api/notifications/send
 | `message` | string | да | Текст сообщения (1-5000 символов) |
 | `recipient_ids` | array\<int\> | да | ID пользователей из таблицы `users` (1-1000) |
 | `priority` | string | да | `transactional` или `marketing` |
-| `idempotency_key` | string | нет | Ключ идемпотентности для дедубликации |
 
-Номера телефонов/email подтягиваются из таблицы `users` в момент отправки через провайдера.
+Номера телефонов/email подтягиваются из таблицы `users` в момент отправки через провайдера. Дедубликация автоматическая по (channel + recipient + message) через Redis.
 
 ### 2. История уведомлений пользователя
 
@@ -158,7 +157,7 @@ curl -X POST http://localhost:8000/api/notifications/send \
 }'
 ```
 
-### Отправка email с дедубликацией (пользователь с ID=2)
+### Отправка email (пользователь с ID=2)
 ```bash
 curl -X POST http://localhost:8000/api/notifications/send \
   -H "Content-Type: application/json" \
@@ -166,8 +165,7 @@ curl -X POST http://localhost:8000/api/notifications/send \
     "channel": "email",
     "message": "Welcome!",
     "recipient_ids": [2],
-    "priority": "marketing",
-    "idempotency_key": "welcome-email-user2"
+    "priority": "marketing"
 }'
 ```
 

@@ -24,14 +24,12 @@ class NotificationController extends Controller
         $priority = NotificationPriority::from($request->input('priority'));
         $userIds  = $request->input('recipient_ids');
         $message  = $request->input('message');
-        $idempotencyKey = $request->input('idempotency_key');
 
-        $notifications = $this->notificationService->saveAndSetKey(
+        $notifications = $this->notificationService->saveNotificationAndSetKey(
             $channel,
             $priority,
             $message,
             $userIds,
-            $idempotencyKey,
         );
 
         foreach ($notifications as $notification) {
@@ -50,13 +48,13 @@ class NotificationController extends Controller
         ], 201);
     }
 
-    public function subscriberHistory(string $userId): JsonResponse
+    public function subscriberHistory(int $userId): JsonResponse
     {
         $user = User::findOrFail($userId);
         $notifications = $this->notificationService->getSubscriberHistory($user->id);
 
         return response()->json([
-            'recipient_id'  => (int) $userId,
+            'recipient_id'  => $user->id,
             'phone'         => $user->phone,
             'notifications' => NotificationResource::collection($notifications),
         ]);

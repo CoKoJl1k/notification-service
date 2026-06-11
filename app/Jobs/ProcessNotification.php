@@ -25,21 +25,6 @@ class ProcessNotification implements ShouldQueue
     public function handle(NotificationDispatcher $dispatcher): void
     {
         $notification = Notification::find($this->notificationId);
-        if (!$notification || $notification->isFinalState()) {
-            return;
-        }
         $dispatcher->dispatch($notification);
-    }
-
-    public function failed(\Throwable $e): void
-    {
-        $notification = Notification::find($this->notificationId);
-
-        if ($notification && !$notification->isFinalState()) {
-            $notification->update([
-                'status' => \App\Enums\NotificationStatus::Discarded,
-                'error_message' => $e->getMessage(),
-            ]);
-        }
     }
 }
