@@ -17,7 +17,7 @@ class ProcessNotification implements ShouldQueue
 
     public ?string $queue = null;
 
-    public function __construct(private readonly string $notificationId, ?string $queue = null)
+    public function __construct(public readonly string $notificationId, ?string $queue = null)
     {
         $this->queue = $queue;
     }

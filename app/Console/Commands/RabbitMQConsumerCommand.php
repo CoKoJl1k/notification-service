@@ -71,14 +71,8 @@ class RabbitMQConsumerCommand extends Command
             $command = unserialize($payload['data']['command']);
 
             if ($command instanceof \App\Jobs\ProcessNotification) {
-                return (function () {
-                    return $this->notificationId;
-                })->bindTo($command, $command)();
+                return $command->notificationId;
             }
-        }
-
-        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $body)) {
-            return $body;
         }
 
         return null;
