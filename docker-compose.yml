@@ -65,6 +65,38 @@ services:
              php artisan queue:work --queue=notifications_high,notifications_low --tries=3 --delay=5"
     restart: unless-stopped
 
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: notifications
+      DB_USERNAME: notifications
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      QUEUE_CONNECTION: rabbitmq
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: >
+      sh -c "php artisan key:generate --force &&
+             php artisan rabbitmq:consume"
+    restart: unless-stopped
+
   postgres:
     image: postgres:15-alpine
     environment:
