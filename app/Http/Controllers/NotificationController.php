@@ -6,16 +6,17 @@ use App\Enums\NotificationChannel;
 use App\Enums\NotificationPriority;
 use App\Http\Requests\SendNotificationRequest;
 use App\Http\Resources\NotificationResource;
-use App\Jobs\ProcessNotification;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\RabbitMQPublisher;
 use Illuminate\Http\JsonResponse;
 
 class NotificationController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
+        private readonly RabbitMQPublisher $publisher,
     ) {}
 
     public function send(SendNotificationRequest $request): JsonResponse
@@ -37,7 +38,7 @@ class NotificationController extends Controller
                 ? 'notifications_transactional'
                 : 'notifications_marketing';
 
-            ProcessNotification::dispatch($notification->id, $queue);
+            $this->publisher->publish($queue, $notification->id);
         }
 
         return response()->json([

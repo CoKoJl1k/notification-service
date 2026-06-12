@@ -67,12 +67,8 @@ class RabbitMQConsumerCommand extends Command
     {
         $payload = json_decode($body, true);
 
-        if (isset($payload['data']['command'])) {
-            $command = unserialize($payload['data']['command']);
-
-            if ($command instanceof \App\Jobs\ProcessNotification) {
-                return $command->notificationId;
-            }
+        if (isset($payload['notification_id'])) {
+            return $payload['notification_id'];
         }
 
         return null;
