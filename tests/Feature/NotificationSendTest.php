@@ -41,8 +41,8 @@ class NotificationSendTest extends TestCase
 
     public function test_it_sends_email_notifications(): void
     {
-        $user = User::create(['name' => 'User', 'phone' => 'user@example.com']);
-        $admin = User::create(['name' => 'Admin', 'phone' => 'admin@example.com']);
+        $user = User::create(['name' => 'User', 'phone' => '+380501234568']);
+        $admin = User::create(['name' => 'Admin', 'phone' => '+380501234569']);
 
         $payload = [
             'channel' => 'email',
@@ -64,7 +64,7 @@ class NotificationSendTest extends TestCase
 
         $payload = [
             'channel' => 'sms',
-            'message' => 'Test message',
+            'message' => 'Your verification code is 1234',
             'recipient_ids' => [$user->id],
             'priority' => 'marketing',
         ];
@@ -88,7 +88,7 @@ class NotificationSendTest extends TestCase
             'recipient_id' => $user->id,
             'channel' => 'sms',
             'priority' => 'transactional',
-            'message' => 'Test',
+            'message' => 'Your verification code is 1234',
             'status' => NotificationStatus::Delivered,
             'sent_at' => now(),
             'delivered_at' => now(),
@@ -98,7 +98,7 @@ class NotificationSendTest extends TestCase
             'recipient_id' => $user->id,
             'channel' => 'email',
             'priority' => 'marketing',
-            'message' => 'Promo',
+            'message' => 'Your discount code is DISCOUNT10',
             'status' => NotificationStatus::Queued,
         ]);
 
@@ -126,7 +126,7 @@ class NotificationSendTest extends TestCase
             'recipient_id' => 'user123',
             'channel' => 'sms',
             'priority' => 'transactional',
-            'message' => 'Test',
+            'message' => 'Your verification code is 1234',
             'status' => NotificationStatus::Queued,
         ]);
 
@@ -149,7 +149,7 @@ class NotificationSendTest extends TestCase
 
         $payload = [
             'channel' => 'invalid',
-            'message' => 'Test',
+            'message' => 'Your verification code is 1234',
             'recipient_ids' => [$user->id],
             'priority' => 'marketing',
         ];
@@ -164,7 +164,7 @@ class NotificationSendTest extends TestCase
 
         $payload = [
             'channel' => 'sms',
-            'message' => 'Test',
+            'message' => 'Your verification code is 1234',
             'recipient_ids' => [$user->id],
             'priority' => 'invalid',
         ];
@@ -177,7 +177,7 @@ class NotificationSendTest extends TestCase
     {
         $payload = [
             'channel' => 'sms',
-            'message' => 'Test',
+            'message' => 'Your verification code is 1234',
             'recipient_ids' => [999],
             'priority' => 'marketing',
         ];

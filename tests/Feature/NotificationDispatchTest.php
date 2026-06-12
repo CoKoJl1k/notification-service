@@ -21,11 +21,13 @@ class NotificationDispatchTest extends TestCase
         $service = $this->app->make(NotificationService::class);
         $dispatcher = $this->app->make(NotificationDispatcher::class);
 
-        $notifications = $service->dispatch(
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
+        $notifications = $service->saveNotificationAndSetKey(
             NotificationChannel::SMS,
             NotificationPriority::Transactional,
-            'Test message',
-            ['+380501234567'],
+            'Your verification code is 1234',
+            [$user->id],
         );
 
         $notification = $notifications->first();
@@ -42,11 +44,13 @@ class NotificationDispatchTest extends TestCase
         $service = $this->app->make(NotificationService::class);
         $dispatcher = $this->app->make(NotificationDispatcher::class);
 
-        $notifications = $service->dispatch(
+        $user = User::create(['name' => 'User', 'phone' => '+380501234568']);
+
+        $notifications = $service->saveNotificationAndSetKey(
             NotificationChannel::Email,
             NotificationPriority::Marketing,
-            'Welcome',
-            ['user@example.com'],
+            'Your discount code is DISCOUNT10',
+            [$user->id],
         );
 
         $notification = $notifications->first();
@@ -73,11 +77,13 @@ class NotificationDispatchTest extends TestCase
         $dispatcher = new NotificationDispatcher($service);
         $dispatcher->addProvider($provider);
 
-        $notifications = $service->dispatch(
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
+        $notifications = $service->saveNotificationAndSetKey(
             NotificationChannel::SMS,
             NotificationPriority::Transactional,
-            'Test',
-            ['+380501234567'],
+            'Your verification code is 1234',
+            [$user->id],
         );
 
         $notification = $notifications->first();
@@ -108,11 +114,13 @@ class NotificationDispatchTest extends TestCase
         $dispatcher = new NotificationDispatcher($service);
         $dispatcher->addProvider($provider);
 
-        $notifications = $service->dispatch(
+        $user = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+
+        $notifications = $service->saveNotificationAndSetKey(
             NotificationChannel::SMS,
             NotificationPriority::Transactional,
-            'Test',
-            ['+380501234567'],
+            'Your verification code is 1234',
+            [$user->id],
         );
 
         $notification = $notifications->first();
@@ -134,18 +142,21 @@ class NotificationDispatchTest extends TestCase
     {
         $service = $this->app->make(NotificationService::class);
 
-        $transactional = $service->dispatch(
+        $user1 = User::create(['name' => 'Alice', 'phone' => '+380501234567']);
+        $user2 = User::create(['name' => 'Bob', 'phone' => '+380501234568']);
+
+        $transactional = $service->saveNotificationAndSetKey(
             NotificationChannel::SMS,
             NotificationPriority::Transactional,
-            'High priority',
-            ['+380501234567'],
+            'Your verification code is 1234',
+            [$user1->id],
         );
 
-        $marketing = $service->dispatch(
+        $marketing = $service->saveNotificationAndSetKey(
             NotificationChannel::SMS,
             NotificationPriority::Marketing,
-            'Low priority',
-            ['+380501234568'],
+            'Your discount code is DISCOUNT10',
+            [$user2->id],
         );
 
         $this->assertEquals(NotificationPriority::Transactional, $transactional->first()->priority);

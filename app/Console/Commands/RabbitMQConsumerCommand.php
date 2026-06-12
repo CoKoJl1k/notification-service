@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\NotificationPriority;
 use App\Models\Notification;
 use App\Services\NotificationDispatcher;
 use Illuminate\Console\Command;
@@ -17,8 +16,8 @@ class RabbitMQConsumerCommand extends Command
     protected $description = 'Consume notifications from RabbitMQ queues';
 
     private const QUEUES = [
-        'notifications_transactional' => ['priority' => 10, 'x-max-priority' => 10],
-        'notifications_marketing' => ['priority' => 0, 'x-max-priority' => 10],
+        'notifications_transactional' => ['priority' => 10],
+        'notifications_marketing' => ['priority' => 0],
     ];
 
     public function handle(NotificationDispatcher $dispatcher): void
@@ -29,7 +28,13 @@ class RabbitMQConsumerCommand extends Command
         $this->declareQueues($channel);
 
         $callback = function (AMQPMessage $msg) use ($dispatcher) {
-            $notificationId = $msg->getBody();
+            $notificationId = $this->extractNotificationId($msg->getBody());
+
+            if ($notificationId === null) {
+                $msg->ack();
+                return;
+            }
+
             $notification = Notification::find($notificationId);
 
             if ($notification && !$notification->isFinalState()) {
@@ -58,6 +63,27 @@ class RabbitMQConsumerCommand extends Command
         $connection->close();
     }
 
+    private function extractNotificationId(string $body): ?string
+    {
+        $payload = json_decode($body, true);
+
+        if (isset($payload['data']['command'])) {
+            $command = unserialize($payload['data']['command']);
+
+            if ($command instanceof \App\Jobs\ProcessNotification) {
+                return (function () {
+                    return $this->notificationId;
+                })->bindTo($command, $command)();
+            }
+        }
+
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $body)) {
+            return $body;
+        }
+
+        return null;
+    }
+
     private function declareQueues(AMQPChannel $channel): void
     {
         foreach (self::QUEUES as $queueName => $config) {
@@ -67,8 +93,6 @@ class RabbitMQConsumerCommand extends Command
                 true,
                 false,
                 false,
-                false,
-                ['x-max-priority' => ['I', $config['x-max-priority']]],
             );
         }
     }

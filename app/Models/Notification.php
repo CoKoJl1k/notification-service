@@ -26,6 +26,14 @@ class Notification extends Model
         'retry_count',
     ];
 
+    public function isFinalState(): bool
+    {
+        return in_array($this->status, [
+            NotificationStatus::Delivered,
+            NotificationStatus::Discarded,
+        ], true);
+    }
+
     protected function casts(): array
     {
         return [

@@ -22,20 +22,20 @@ class NotificationController extends Controller
     {
         $channel  = NotificationChannel::from($request->input('channel'));
         $priority = NotificationPriority::from($request->input('priority'));
-        $userIds  = $request->input('recipient_ids');
+        $recipientIds  = $request->input('recipient_ids');
         $message  = $request->input('message');
 
         $notifications = $this->notificationService->saveNotificationAndSetKey(
             $channel,
             $priority,
             $message,
-            $userIds,
+            $recipientIds,
         );
 
         foreach ($notifications as $notification) {
             $queue = $priority === NotificationPriority::Transactional
-                ? 'notifications_high'
-                : 'notifications_low';
+                ? 'notifications_transactional'
+                : 'notifications_marketing';
 
             ProcessNotification::dispatch($notification->id, $queue);
         }
